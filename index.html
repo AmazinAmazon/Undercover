@@ -12,7 +12,7 @@
     integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous" />
 </head>
 
-<body>
+<body class="text-black">
   <header>
     <!-- place navbar here -->
   </header>
@@ -31,22 +31,22 @@
       <div class="row g-3 mb-2">
         <div class="col-md"> <!-- Stacks on small, shares space on medium+ -->
           <label for="citizensInput" class="form-label">Number of citizens</label>
-          <input required type="number" class="form-control" min="2" id="nbCitizens"/>
+          <input required type="number" class="form-control" min="2" id="nbCitizens" value="3"/>
         </div>
         <div class="col-md">
           <label for="undercoversInput" class="form-label">Number of undercovers</label>
-          <input required type="number" class="form-control" min="1" id="nbUnder"/>
+          <input required type="number" class="form-control" min="1" id="nbUnder" value="1"/>
         </div>
         <div class="col-md">
           <label for="mrWhitesInput" class="form-label">Number of Mr. Whites</label>
-          <input required type="number" class="form-control" min="0" id="nbWhite"/>
+          <input required type="number" class="form-control" min="0" id="nbWhite" value="1"/>
         </div>
       </div>
 
       <!-- ROW for the Play button -->
       <div class="row mb-3">
         <div class="col d-grid">
-          <button class="btn btn-primary" type="button" onclick="play(document.getElementById('nbCitizens').valueAsNumber + document.getElementById('nbUnder').valueAsNumber + document.getElementById('nbWhite').valueAsNumber)">
+          <button class="btn btn-primary" type="button" onclick="play(document.getElementById('nbCitizens').valueAsNumber, document.getElementById('nbUnder').valueAsNumber, document.getElementById('nbWhite').valueAsNumber)">
             Play
           </button>
         </div>
@@ -60,11 +60,12 @@
           <div class="col-sm bg-dark text-white rounded-3">3</div>
         </div>
 
-        <div class="word text-center mt-2">
-          <button class="btn btn-primary px-5">Start</button>
+        <div class="word text-center mt-2 text-black" id="wordContainer">
+          <p class="my-2"></p>
+          <button class="btn btn-primary px-5" onclick="ready()">Next player ready</button>
         </div>
       </div>
-    </div><!-- End container play -->
+    </div>
 
   </main>
   <footer>
