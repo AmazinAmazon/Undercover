@@ -32,7 +32,19 @@ async function getRandomIndex() {
     }
 }
 
+function clickPlayer(player) {
+    console.log(currentTurn, roles.length)
+    if (currentTurn / 2 < roles.length || roles.length == 0) {
+        alert(`You can only check the player's role after the game is over!`)
+    }
+}
+
 async function play(citizens, undercover, whites) {
+
+    // Todo: Add game checks here
+    // Check if players are valid numbers 
+    // Check if there are more citizens than undercovers
+
     const players = citizens + undercover + whites; 
     roles = []; // Reset roles array
 
@@ -45,10 +57,10 @@ async function play(citizens, undercover, whites) {
     let newInfo = ""
     for (let i = 0; i < players; i++) {
         if (i == 0) {
-            newInfo += `<div class="col-sm text-bg-success rounded-3">${i+1}</div>`
+            newInfo += `<div class="col-sm d-grid p-0"><button class="btn btn-sm btn-success p-0" onclick="clickPlayer(${i+1})">${i+1}</button></div>`
             
         } else {
-            newInfo += `<div class="col-sm text-bg-dark rounded-3">${i+1}</div>`
+            newInfo += `<div class="col-sm d-grid p-0"><button class="btn btn-sm btn-dark p-0" onclick="clickPlayer(${i+1})">${i+1}</button></div>`
         }
     }
     playerInfoRow.innerHTML = newInfo
@@ -91,7 +103,10 @@ function ready() {
 
     console.log(currentPlayer)
 
-    if (currentTurn%2 == 0) {
+    if (currentTurn / 2 >= roles.length){
+        playerInfo.textContent = `Finished distributing roles!`;
+        // Give player order
+    } else if (currentTurn%2 == 0 && currentTurn / 2 < roles.length) {
         playerInfo.textContent = `Please pass the phone to the next player!`;
         currentPlayer += 1;
     } else if (roles[currentPlayer-1] == "citizen") {
@@ -100,11 +115,8 @@ function ready() {
         playerInfo.textContent = `Player ${currentPlayer}: Your word is ${currentWords["undercover"]};`
     } else if (roles[currentPlayer-1] == "white") {
         playerInfo.textContent = `Player ${currentPlayer}: You're Mr White. You don't have any word, you'll have to bluff!;`
-    } else {
-        console.log("Done")
-        // Give player order
-    }
-    console.log(currentWords)
+    } 
+    console.log(currentTurn, currentPlayer)
 }
 
 async function getJsonIndexWord(index) {
