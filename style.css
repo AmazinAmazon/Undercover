@@ -1,0 +1,36 @@
+.vertical-center {
+    min-height: 100%;  /* Fallback for browsers do NOT support vh unit */
+    min-height: 100vh; /* These two lines are counted as one :-)       */
+
+    display: flex;
+    align-items: center;     /* Centers horizontally when flex-direction is column */
+    justify-content: center; /* Centers vertically when flex-direction is column */
+    flex-direction: column;
+}
+
+body {
+    background-image: url('bg_img2.jpg');
+    background-size: cover; /* Ensures the image covers the entire element */
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    margin: 0;
+    padding: 0;
+    height: 100%; /* Ensure body takes full height */
+}
+
+html {
+    height: 100%; /* Ensure html takes full height */
+    overflow: hidden;
+}
+
+#gameDiv {
+    width: 75%;
+}
+
+/* Mobile styles - match Bootstrap md breakpoint (768px) */
+@media (max-width: 767.98px) {
+    #gameDiv {
+        width: 100%;
+    }
+}

@@ -5,7 +5,7 @@ var currentTurn = 1;
 
 async function getWordsLength() {
     try {
-        const response = await fetch('./words.json');
+        const response = await fetch('./words_en.json');
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -18,14 +18,13 @@ async function getWordsLength() {
 
 async function getRandomIndex() {
     try {
-        const response = await fetch('./words.json');
+        const response = await fetch('./words_en.json');
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         const words = await response.json();
         const wordKeys = Object.keys(words);
-        const randomIndex = Math.floor(Math.random() * wordKeys.length);
-        return randomIndex;
+        return Math.floor(Math.random() * wordKeys.length);
     } catch (error) {
         console.error('Error fetching or parsing the JSON file:', error);
         return -1;
@@ -33,7 +32,7 @@ async function getRandomIndex() {
 }
 
 function clickPlayer(player) {
-    console.log(currentTurn, roles.length)
+    console.log(player)
     if (currentTurn / 2 < roles.length || roles.length == 0) {
         alert(`You can only check the player's role after the game is over!`)
     }
@@ -50,77 +49,126 @@ async function play(citizens, undercover, whites) {
 
     currentWords = []; // Reset currentWords array
     const wordIndex = await getRandomIndex(); // Get a random index
+    // Todo : Check if player already played with these words
+
     await getJsonIndexWord(wordIndex)
 
     // Add the correct number of players to the playerInfoRow
     let playerInfoRow = document.getElementById('playerInfoRow');
     let newInfo = ""
     for (let i = 0; i < players; i++) {
-        if (i == 0) {
-            newInfo += `<div class="col-sm d-grid p-0"><button class="btn btn-sm btn-success p-0" onclick="clickPlayer(${i+1})">${i+1}</button></div>`
+        if (i === 0) {
+            newInfo += `<div class="col-sm d-grid p-0"><button class="btn btn-sm btn-success p-2" onclick="clickPlayer(${i+1})" id="player${i+1}">${i+1}</button></div>`
             
         } else {
-            newInfo += `<div class="col-sm d-grid p-0"><button class="btn btn-sm btn-dark p-0" onclick="clickPlayer(${i+1})">${i+1}</button></div>`
+            newInfo += `<div class="col-sm d-grid p-0"><button class="btn btn-sm btn-dark p-2" onclick="clickPlayer(${i+1})" id="player${i+1}">${i+1}</button></div>`
         }
     }
     playerInfoRow.innerHTML = newInfo
+    document.getElementById('inputsDiv').classList.add('d-none')
+    document.getElementById('playerInfo').classList.remove('d-none')
 
     // Assign a role to each player
-
     for (let i = 0; i < citizens; i++) roles.push("citizen");
     for (let i = 0; i < undercover; i++) roles.push("undercover");
     for (let i = 0; i < whites; i++) roles.push("white");
 
     // Shuffle roles using Fisher-Yates Shuffle
-    for (let i = roles.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [roles[i], roles[j]] = [roles[j], roles[i]];
-    }
-    
-    // If "white" is at the beginning, swap it with a non-white role
-    if (roles[0] === "white") {
-        // Find first non-white role to swap with
-        for (let i = 1; i < roles.length; i++) {
-            if (roles[i] !== "white") {
-                [roles[0], roles[i]] = [roles[i], roles[0]];
-                break;
-            }
-        }
-    }
+    console.log(roles)
+    shuffleRoles(roles)
 
+    // If "white" is at the beginning, swap it with a non-white role
     console.log(roles);
 
 }
 
+function shuffleRoles(roles) {
+    for (let i = roles.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [roles[i], roles[j]] = [roles[j], roles[i]];
+    }
+}
+
 function ready() {
-    const infoSection = document.getElementById("wordContainer")
+    const wordContainer = document.getElementById("wordContainer")
 
     // Check if the first child exists and is a paragraph
-    if (infoSection.firstElementChild.textContent != "") {
+    if (wordContainer.firstElementChild.textContent !== "") {
         currentTurn += 1;
     }
-    var playerInfo = infoSection.firstElementChild;
+    const playerInfo = wordContainer.firstElementChild;
 
     console.log(currentPlayer)
 
-    if (currentTurn / 2 >= roles.length){
-        playerInfo.textContent = `Finished distributing roles!`;
+    if (currentTurn / 2 >= roles.length){ // Finished distributing roles
+        document.getElementById(`player${roles.length}`).className = "btn btn-sm btn-dark p-2"
+        finishedDistributing();
         // Give player order
     } else if (currentTurn%2 == 0 && currentTurn / 2 < roles.length) {
         playerInfo.textContent = `Please pass the phone to the next player!`;
         currentPlayer += 1;
     } else if (roles[currentPlayer-1] == "citizen") {
         playerInfo.textContent = `Player ${currentPlayer}: Your word is ${currentWords["citizen"]};`
+
+        document.getElementById(`player${currentPlayer}`).className = "btn btn-sm btn-success p-2"
+        if (currentPlayer > 1) {
+            document.getElementById(`player${currentPlayer-1}`).className = "btn btn-sm btn-dark p-2"
+        }
     } else if (roles[currentPlayer-1] == "undercover") {
         playerInfo.textContent = `Player ${currentPlayer}: Your word is ${currentWords["undercover"]};`
+
+        document.getElementById(`player${currentPlayer}`).className = "btn btn-sm btn-success p-2"
+        if (currentPlayer > 1) {
+            document.getElementById(`player${currentPlayer-1}`).className = "btn btn-sm btn-dark p-2"
+        }
     } else if (roles[currentPlayer-1] == "white") {
         playerInfo.textContent = `Player ${currentPlayer}: You're Mr White. You don't have any word, you'll have to bluff!;`
+
+        document.getElementById(`player${currentPlayer}`).className = "btn btn-sm btn-success p-2"
+        if (currentPlayer > 1) {
+            document.getElementById(`player${currentPlayer-1}`).className = "btn btn-sm btn-dark p-2"
+        }
     } 
     console.log(currentTurn, currentPlayer)
 }
 
+function finishedDistributing() {
+    const playerInfo = document.getElementById("wordContainer").firstElementChild
+
+    for (let i = 0; i < roles.length; i++) {
+        roles[i] = (i+1) + roles[i];  // Adding player order to roles
+    }
+
+    shuffleRoles(roles);
+
+    // White cannot be the first player
+    if (roles[0].includes("white")) {
+        // Find first non-white role to swap with
+        for (let i = 1; i < roles.length; i++) {
+            if (!roles[i].includes("white")) {
+                [roles[0], roles[i]] = [roles[i], roles[0]];
+                break;
+            }
+        }
+    }
+
+    console.log(roles)
+
+    playerInfo.textContent = `Player order: `;
+    for (let i = 0; i < roles.length; i++) {
+       playerInfo.textContent += `| ${roles[i].slice(0, 1)} `;
+    }
+    playerInfo.textContent += `| Click on a player number to reveal their role!`;
+
+    alert(`Finished distributing roles!`);
+
+    // TODO: Code to reveal player roles
+
+}
+
+
 async function getJsonIndexWord(index) {
-    fetch('./words.json')
+    fetch('./words_en.json')
         .then(response => response.json())
         .then(data => {
             const word = data[index];
