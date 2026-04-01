@@ -2,14 +2,62 @@ var currentWords = [];
 var roles = [];
 var currentPlayer = 1;
 var currentTurn = 1;
+var currentLanguage = "en";
+var revealedPlayers = new Set();
+
+function setLanguage(language) {
+    currentLanguage = language;
+}
+
+function getRevealMessageElement() {
+    return document.getElementById("revealMessage");
+}
+
+function showRevealMessage(message) {
+    const revealMessage = getRevealMessageElement();
+    if (!revealMessage) return;
+    revealMessage.textContent = message;
+    revealMessage.classList.remove("d-none");
+}
+
+function clearRevealMessage() {
+    const revealMessage = getRevealMessageElement();
+    if (!revealMessage) return;
+    revealMessage.textContent = "";
+    revealMessage.classList.add("d-none");
+}
+
+function getUsedWordIndexes() {
+    const sessionKey = `usedWordIndexes_${currentLanguage}`;
+    const stored = sessionStorage.getItem(sessionKey);
+    if (!stored) {
+        return [];
+    }
+
+    try {
+        const parsed = JSON.parse(stored);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch {
+        return [];
+    }
+}
+
+function setUsedWordIndexes(indexes) {
+    const sessionKey = `usedWordIndexes_${currentLanguage}`;
+    sessionStorage.setItem(sessionKey, JSON.stringify(indexes));
+}
+
+async function fetchWordsData() {
+    const response = await fetch(`./words_${currentLanguage}.json`);
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.json();
+}
 
 async function getWordsLength() {
     try {
-        const response = await fetch('./words_en.json');
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const words = await response.json();
+        const words = await fetchWordsData();
         console.log('Length of words object:', Object.keys(words).length);
     } catch (error) {
         console.error('Error fetching or parsing the JSON file:', error);
@@ -18,13 +66,32 @@ async function getWordsLength() {
 
 async function getRandomIndex() {
     try {
-        const response = await fetch('./words_en.json');
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+        const words = await fetchWordsData();
+        const wordsLength = words.length;
+        let usedIndexes = getUsedWordIndexes();
+        let availableIndexes = [];
+
+        for (let i = 0; i < wordsLength; i++) {
+            if (!usedIndexes.includes(i)) {
+                availableIndexes.push(i);
+            }
         }
-        const words = await response.json();
-        const wordKeys = Object.keys(words);
-        return Math.floor(Math.random() * wordKeys.length);
+
+        if (availableIndexes.length === 0) {
+            usedIndexes = [];
+            setUsedWordIndexes(usedIndexes);
+            for (let i = 0; i < wordsLength; i++) {
+                availableIndexes.push(i);
+            }
+        }
+
+        const randomAvailableIndex = Math.floor(Math.random() * availableIndexes.length);
+        const selectedIndex = availableIndexes[randomAvailableIndex];
+
+        usedIndexes.push(selectedIndex);
+        setUsedWordIndexes(usedIndexes);
+
+        return selectedIndex;
     } catch (error) {
         console.error('Error fetching or parsing the JSON file:', error);
         return -1;
@@ -34,8 +101,33 @@ async function getRandomIndex() {
 function clickPlayer(player) {
     console.log(player)
     if (currentTurn / 2 < roles.length || roles.length == 0) {
-        alert(`You can only check the player's role after the game is over!`)
+        showRevealMessage(`You can only check player roles after the game is over.`)
+        return;
     }
+
+    const role = roles[player - 1];
+    if (!role) {
+        return;
+    }
+
+    const playerButton = document.getElementById(`player${player}`);
+
+    if (revealedPlayers.has(player)) {
+        return;
+    }
+
+    if (role === "citizen") {
+        showRevealMessage(`Player ${player} is a Citizen.`);
+        playerButton.className = "btn btn-sm btn-primary p-2";
+    } else if (role === "undercover") {
+        showRevealMessage(`Player ${player} is the Undercover.`);
+        playerButton.className = "btn btn-sm btn-danger p-2";
+    } else if (role === "white") {
+        showRevealMessage(`Player ${player} is Mr. White.`);
+        playerButton.className = "btn btn-sm btn-light text-dark p-2";
+    }
+
+    revealedPlayers.add(player);
 }
 
 async function play(citizens, undercover, whites) {
@@ -46,6 +138,10 @@ async function play(citizens, undercover, whites) {
 
     const players = citizens + undercover + whites; 
     roles = []; // Reset roles array
+    revealedPlayers.clear();
+    currentPlayer = 1;
+    currentTurn = 1;
+    clearRevealMessage();
 
     currentWords = []; // Reset currentWords array
     const wordIndex = await getRandomIndex(); // Get a random index
@@ -80,6 +176,25 @@ async function play(citizens, undercover, whites) {
     // If "white" is at the beginning, swap it with a non-white role
     console.log(roles);
 
+}
+
+function restartGame() {
+    roles = [];
+    currentWords = [];
+    currentPlayer = 1;
+    currentTurn = 1;
+    revealedPlayers.clear();
+
+    const playerInfoRow = document.getElementById('playerInfoRow');
+    playerInfoRow.innerHTML = "";
+
+    const playerInfo = document.getElementById("wordContainer").firstElementChild;
+    playerInfo.textContent = "";
+
+    clearRevealMessage();
+
+    document.getElementById('playerInfo').classList.add('d-none');
+    document.getElementById('inputsDiv').classList.remove('d-none');
 }
 
 function shuffleRoles(roles) {
@@ -134,33 +249,34 @@ function ready() {
 
 function finishedDistributing() {
     const playerInfo = document.getElementById("wordContainer").firstElementChild
+    const speakingOrder = [];
 
     for (let i = 0; i < roles.length; i++) {
-        roles[i] = (i+1) + roles[i];  // Adding player order to roles
+        speakingOrder.push((i + 1) + roles[i]);
     }
 
-    shuffleRoles(roles);
+    shuffleRoles(speakingOrder);
 
     // White cannot be the first player
-    if (roles[0].includes("white")) {
+    if (speakingOrder[0].includes("white")) {
         // Find first non-white role to swap with
-        for (let i = 1; i < roles.length; i++) {
-            if (!roles[i].includes("white")) {
-                [roles[0], roles[i]] = [roles[i], roles[0]];
+        for (let i = 1; i < speakingOrder.length; i++) {
+            if (!speakingOrder[i].includes("white")) {
+                [speakingOrder[0], speakingOrder[i]] = [speakingOrder[i], speakingOrder[0]];
                 break;
             }
         }
     }
 
-    console.log(roles)
+    console.log(speakingOrder)
 
     playerInfo.textContent = `Player order: `;
-    for (let i = 0; i < roles.length; i++) {
-       playerInfo.textContent += `| ${roles[i].slice(0, 1)} `;
+    for (let i = 0; i < speakingOrder.length; i++) {
+       playerInfo.textContent += `| ${speakingOrder[i].slice(0, 1)} `;
     }
     playerInfo.textContent += `| Click on a player number to reveal their role!`;
 
-    alert(`Finished distributing roles!`);
+    showRevealMessage(`Finished distributing roles. Click a player number to reveal their role.`);
 
     // TODO: Code to reveal player roles
 
@@ -168,8 +284,13 @@ function finishedDistributing() {
 
 
 async function getJsonIndexWord(index) {
-    fetch('./words_en.json')
-        .then(response => response.json())
+    fetch(`./words_${currentLanguage}.json`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
             const word = data[index];
             currentWords = word;
